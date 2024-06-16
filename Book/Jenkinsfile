@@ -12,7 +12,7 @@ pipeline{
       steps{
         // Java 파일들을 컴파일하여 생성된 클래스 파일을 classes 디렉토리에 저장
         // windows일 경우 bat
-        bat 'javac -cp C:\\Users\\ogus05\\eclipse\\java-2024-03\\eclipse\\plugins\\junit-platform-console-standalone-1.7.1.jar -encoding UTF-8 -d classes SE_proj\\src\\*.java'
+        bat 'javac -cp C:\\Users\\ogus05\\eclipse\\java-2024-03\\eclipse\\plugins\\junit-platform-console-standalone-1.7.1.jar -encoding UTF-8 -d classes Book\\src\\Book\\*.java'
       }
     }
     stage('Test'){
