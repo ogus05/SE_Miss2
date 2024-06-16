@@ -7,77 +7,98 @@ import java.util.LinkedList;
 import java.util.List;
 
 //BookManager들의 performance를 test하기 위한 class.
+//Add, Remove, Search의 performance를 test한다.
+
+
 class BookManagerPerformanceTest {
 	//각 test전 bookManager들에 입력되는 book의 개수.
 	final int NUMB_OF_TEST_CASES = 10000;
 	
 	//각 test에서 add, remove, search되는 book의 개수.
-	//각 test는 NUMB_OF_SEARCH_CASES번 만큼 iteration.
 	final int NUMB_OF_SEARCH_CASES = 100;
 		
-	//Test하기 위한 BookManager instance.
-	BookManager bookManager;
+	//Test대상인 BookManagerBS instance.
+	BookManagerBase bookManager;
 	
-	//Test하기 위한 BookManagerBS instance.
-	BookManagerBS bookManagerBS;
+	//Test대상인 BookManagerBS instance.
+	BookManagerBase bookManagerBS;
 	
-	//Test 전 bookManager에 추가되는 book들 중 NUMB_OF_SEARCH_CASES개.
+	//Test 전 bookManager에 추가되는 book instance의 NUMB_OF_SEARCH_CASES개.
+	//Search, Remove에서 정상적인 동작, Add에서 오류를 tset하기 위한 book instance list.
 	List<Book> bookInBookManagerList;
 	
-	//Test 전 bookManager에 추가되지 않은 book의  NUMB_OF_SEARCH_CASES개.
+	//Test 전 bookManager에 추가되지 않은 book instance의 NUMB_OF_SEARCH_CASES개.
+	//Add에서 정상적인 동작, Search, Remove에서 오류를 test하기 위한 book instance list.
 	List<Book> bookNotInBookManagerList;
 	
-	@BeforeEach
-	void setUp() throws Exception {
-		
-		bookManager = new BookManager();
-		bookManagerBS = new BookManagerBS();
-		
-		bookInBookManagerList = new LinkedList<Book>();
-		bookNotInBookManagerList = new LinkedList<Book>();
-
-		//BookManager에 입력될 test할 ID를 Add되는 순서를 통해 지정.
-		int insertedSeq_bookInBookManager = (int) (System.currentTimeMillis() % NUMB_OF_TEST_CASES) / NUMB_OF_SEARCH_CASES;
-		//BookManager에 입력되지 않을 test할 ID를 Add되는 순서를 통해 지정.
-		int insertedSeq_ID_bookNotInBookManager = (int) (System.currentTimeMillis() % NUMB_OF_TEST_CASES) / NUMB_OF_SEARCH_CASES;
-		
-		//insertedSeq_bookInBookManager != insertedSeq_ID_bookNotInBookManager를 위해 loop문을 활용.
-		while(insertedSeq_bookInBookManager == insertedSeq_ID_bookNotInBookManager) {
-			insertedSeq_ID_bookNotInBookManager = (int) (System.currentTimeMillis() % NUMB_OF_TEST_CASES) / NUMB_OF_SEARCH_CASES;
+	//출력 값. random number [0, (NUMB_OF_TSET_CASES / NUMB_OF_SEARCH_CASES)).
+	int getRandomNumberForBookIDCluster() {
+		return (int) (System.currentTimeMillis() % NUMB_OF_TEST_CASES) / NUMB_OF_SEARCH_CASES;
+	}
+	
+	//입력 값. book id.
+	//출력 값. 입력된 book id를 갖는 book instance.
+	//동작 요약. Test를 위한 dummy book을 생성 후 반환.
+	Book makeDummyBook(int bookID) {
+		String bookTitle = Integer.toString(bookID) + "번째 책";
+		String bookAuthor = Integer.toString(bookID) + "번째 책 저자";
+		//Book의 publicDate는 bookID에 2024를 더한 값.
+		int bookPublicDate = bookID + 2024;
+		return new Book(bookID, bookTitle, bookAuthor, bookPublicDate);
+	}
+	
+	//동작 요약.
+	//Random하게 NUMB_OF_TEST_CASES - NUMB_OF_SEARCH_CASES개만큼 bookManager에 book instance를 add.
+	//Random한 값 중 (2 * NUMB_OF_SEARCH_CASES)가지를 선택하여 list에 add된 book instance 중 NUMB_OF_SEARCH_CASES개는 bookInBookManager가 가리키도록 한다.
+	//list에 add되지 않은 book instance 중 NUMB_OF_SEARCH_CASES개는 bookNotInBookManager가 가리키도록 한다.
+	void addItemsToListBeforeTest() throws Exception {
+		//bookInBookManager 및 bookNotInBookManager의 ID_CLUSTER를 random하게 설정.
+		//[ID_Cluster * NUMB_OF_SEARCH_CASES, (ID_Cluster + 1) * NUMB_OF_SEARCH_CASES)의 범위에 포함되는 ID가 bookInBookManager 및 bookNotInBookManager의 list에 add된다.
+		int ID_CLUSTER_bookInBookManager = getRandomNumberForBookIDCluster();
+		int ID_CLUSTER_bookNotInBookManager = getRandomNumberForBookIDCluster();
+		while(ID_CLUSTER_bookInBookManager == ID_CLUSTER_bookNotInBookManager) {
+			ID_CLUSTER_bookNotInBookManager = getRandomNumberForBookIDCluster();
 		}
 		
-		System.out.printf("Inserted Sequnece of Books In BookManager = %d\n", insertedSeq_bookInBookManager);
-		System.out.printf("Inserted Sequnece  of Books Not In BookManager = %d\n", insertedSeq_ID_bookNotInBookManager);
+		System.out.printf("Inserted Sequnece of Books In BookManager = %d - %d\n", ID_CLUSTER_bookInBookManager * NUMB_OF_SEARCH_CASES, (ID_CLUSTER_bookInBookManager + 1) * NUMB_OF_SEARCH_CASES - 1);
+		System.out.printf("Inserted Sequnece  of Books Not In BookManager = %d - %d\n", ID_CLUSTER_bookNotInBookManager * NUMB_OF_SEARCH_CASES, (ID_CLUSTER_bookNotInBookManager + 1) * NUMB_OF_SEARCH_CASES - 1);
 		
 		//BookManager에 추가되어야 할 book의 ID를 담고 있는 list.
+		//BookManager에 저장된 book instance가 random한 sequence를 갖게하기 위해 활용된다.
 		List<Integer> remainIDList = new LinkedList<Integer>();
 		for(int i = 0; i < NUMB_OF_TEST_CASES; i++) {
 			remainIDList.add(i);
 		}
 		
-		//Test 전 setup 과정. NUMB_OF_TEST_CASES의 개수 만큼 bookManager에 book추가.
-		//Test를 위해 입력되는 id의 순서를 랜덤하게 설정.
 		while(remainIDList.size() != 0) {
 			int remainIDListIdxInCurrentLoop = (int)(System.currentTimeMillis() % remainIDList.size());
-			int bookID = remainIDList.get(remainIDListIdxInCurrentLoop);
-			String bookTitle = Integer.toString(bookID) + "번째 책";
-			String bookAuthor = Integer.toString(bookID) + "번째 책 저자";
-			//Book의 publicDate는 bookID에 2024를 더한 값.
-			int bookPublicDate = bookID + 2024;
 			
-			Book bookInCurrentLoop = new Book(bookID, bookTitle, bookAuthor, bookPublicDate);
-			if((remainIDListIdxInCurrentLoop / NUMB_OF_SEARCH_CASES) != insertedSeq_ID_bookNotInBookManager) {
+			Book bookInCurrentLoop = makeDummyBook(remainIDList.get(remainIDListIdxInCurrentLoop));
+			
+			if((bookInCurrentLoop.getId() / NUMB_OF_SEARCH_CASES) != ID_CLUSTER_bookNotInBookManager) {
 				bookManager.AddBook(bookInCurrentLoop.getId(), bookInCurrentLoop.getTitle(), bookInCurrentLoop.getAuthor(), bookInCurrentLoop.getPublicDate());
 				bookManagerBS.AddBook(bookInCurrentLoop.getId(), bookInCurrentLoop.getTitle(), bookInCurrentLoop.getAuthor(), bookInCurrentLoop.getPublicDate());
-				if((remainIDListIdxInCurrentLoop / NUMB_OF_SEARCH_CASES) == insertedSeq_bookInBookManager) {
+				if((bookInCurrentLoop.getId() / NUMB_OF_SEARCH_CASES) == ID_CLUSTER_bookInBookManager) {
 					bookInBookManagerList.add(bookInCurrentLoop);
 				}
 			} else {
 				bookNotInBookManagerList.add(bookInCurrentLoop);
 			}
 			
+			//추가된 book ID를 제거.
 			remainIDList.remove(remainIDListIdxInCurrentLoop);
 		}
+	}
+	
+	@BeforeEach
+	void setUp() throws Exception {
+		bookManager = new BookManager();
+		bookManagerBS = new BookManagerBS();
+		
+		bookInBookManagerList = new LinkedList<Book>();
+		bookNotInBookManagerList = new LinkedList<Book>();
+		
+		addItemsToListBeforeTest();
 	}
 
 	@Test
